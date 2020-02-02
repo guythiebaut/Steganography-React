@@ -1,0 +1,53 @@
+.lefty {
+    float: left !important;
+}
+
+.radioLeft
+{
+    text-align:left;
+    margin-left: 2%;
+}
+
+.textBox
+{
+    margin-left: 5%;
+    margin-bottom: 5%;
+    width:450px;
+    height:150px;
+}
+
+.card-margin
+{
+    margin-top: 5%;
+}
+
+.card-intro
+{
+    width: 70%;
+    text-align: justify;
+}
+
+.modalDialog-top
+{
+    margin-top: 1%;
+} 
+
+.p3-padding
+{
+    padding-bottom: 1px!important;
+}
+
+.tab-header
+{
+    font-weight: bold;
+}
+
+.alert-hide
+{
+    display: none;
+}
+
+.alert-text
+{
+    text-align: justify;
+}
