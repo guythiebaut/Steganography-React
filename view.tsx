@@ -163,7 +163,8 @@ export function View() {
                                             <u>Supplemental information</u><br></br>
                                             All of the processing takes place locally in your browser.<br></br>
                                             The text you encrypt is not processed online or in 'the cloud.'<br></br>
-                                            This ensures that the encryption you apply is completely private to you.
+                                            This ensures that the encryption you apply is completely private to you.<br></br>
+                                            <Card.Link href="https://github.com/guythiebaut/Steganography-React">You can access the source code from GitHub - click here</Card.Link>
                                         </Card.Body>
                                     </Accordion.Collapse>
                                 </Card>                
