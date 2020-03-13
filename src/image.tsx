@@ -1,3 +1,8 @@
+export interface IImage {
+    ImageFileDimensions(file: any): Promise<Dimensions>;
+    ImageFileByteCapacity(dimensions: Dimensions): number
+}
+
 export class ImageInfo {
     fileNo: number;
     fileCount: number;
@@ -39,16 +44,33 @@ export class Dimensions {
     }
 }
 
+export const IsImageFile = ((file: any): boolean => {
+    return file.type.includes('image/');
+});
 
-export class Main {
+export const EndMarker = ((text: string, decrypting: boolean = false): string => {
+    let endString = 'SteganographyEndMarker';
+    let result = endString;
 
+    if(decrypting) return endString;
 
-    IsImagFile = ((file: any): boolean => {
-        return file.type.includes('image/');
-    });
+    if((text.length + endString.length) % 3 !== 0 || endString.length === 0) {
+        let count =  3 - (text.length + endString.length) % 3;
+        result = endString + '#'.repeat(count);
+    }
+    return result;
+});
+
+export const StringToNumberArray = ((txt: string): number[] => {
+    let result: number[] = [];
+    txt.split('').map( a => result.push(a.charCodeAt(0)));
+    return result;
+});
+
+export class Main implements IImage {
 
     ImageFileDimensions = ((file: any) => {
-        return new Promise((resolve) => {
+        return new Promise<Dimensions>((resolve) => {
             var img = new Image();
             img.src = URL.createObjectURL(file);
             img.onload = function (a: any) {
@@ -73,12 +95,6 @@ export class Main {
         return capacity;
     });
 
-    StringToNumberArray = ((txt: string): number[] => {
-        let result: number[] = [];
-        txt.split('').map( a => result.push(a.charCodeAt(0)));
-        return result;
-    });
-
     SplitLargeArray = ((arr: any, maxSize: number = 100) => {
         let arrObject = [];
         let currentArr = [];
@@ -93,19 +109,6 @@ export class Main {
             }
         }
         return arrObject;
-    });
-
-    EndMarker = ((text: string, decrypting: boolean = false): string => {
-        let endString = 'SteganographyEndMarker';
-        let result = endString;
-
-        if(decrypting) return endString;
-
-        if((text.length + endString.length) % 3 !== 0 || endString.length === 0) {
-            let count =  3 - (text.length + endString.length) % 3;
-            result = endString + '#'.repeat(count);
-        }
-        return result;
     });
 
     PixelArrayToObjectPiXelArray = ((pixelArray: any): any => {
@@ -188,7 +191,6 @@ export class Main {
         let intIndex: number = 0;
         let intValue: number = 0;
         let pixelElementIndex: number = 0;
-        let zeros: number = 0;
         let originalR: number = 0;
         let originalG: number = 0;
         let originalB: number = 0;
@@ -212,7 +214,6 @@ export class Main {
                 if (Math.round(pixelElementIndex % 8) === 0) {
                     if (intIndex >= txt.length)
                     {
-                        state = 'Filling_With_Zeros';
                         pixels.splice(0, result.length, ...result);
                         return pixels;
                     }
@@ -256,11 +257,6 @@ export class Main {
                         }
                 }
                 pixelElementIndex++;
-
-                if (state === 'Filling_With_Zeros')
-                {
-                    zeros++;
-                }
             }
           }
         return result;
@@ -295,7 +291,7 @@ export class Main {
         let endMarkerList: number[] = [];
         let ints: number[] = [];
         endMarker.split('').map( a => endMarkerList.push(a.charCodeAt(0)));
-        console.log('endMarker',endMarker);
+        //console.log('endMarker',endMarker);
 
         for (var pixelCount = 0; pixelCount < pixels.length; pixelCount++) {
             let pixel = pixels[pixelCount].vals;
@@ -323,7 +319,7 @@ export class Main {
 
                         for (var x = 0; x < endMarkerLength; x++)
                         {
-                            if (endMarkerList[x] != check[x])
+                            if (endMarkerList[x] !== check[x])
                             {
                                 endFound = false;
                                 break;

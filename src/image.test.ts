@@ -1,4 +1,5 @@
 import * as Image from './image'
+import { EndMarker } from './image'
 
 describe("reverseBits", () => {
     test.each
@@ -28,8 +29,7 @@ describe("EndMarker", () => {
     ${'12345'}
     ${'123456'}`
   ('$inText returns 0 when result % 3 is tested', ({inText}) => {
-    let image = new Image.Main();
-    let result = image.EndMarker(inText);
+    let result = EndMarker(inText);
     expect((inText.length + result.length) % 3).toEqual(0);
   });
 });
