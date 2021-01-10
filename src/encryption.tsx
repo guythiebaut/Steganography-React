@@ -520,9 +520,10 @@ export class MessagePacker implements IMessagePackerBuilder {
 				canvas.width = dimensions.width;
 				canvas.height = dimensions.height;
 				const ctx: any = canvas.getContext('2d');
+				const fileName = fileUnit.containerFile.name;
 				//debugger;
 				ctx.drawImage(img, 0, 0, dimensions.width, dimensions.height);
-				fnProcessCanvas(canvas, fileUnit.intArray, () => {}, 'testContainer.jpg', () => {});
+				fnProcessCanvas(canvas, fileUnit.intArray, () => {}, fileName, () => {});
 				//resolve(canvas) -> or perfoms an action on this canvas
 			};
 			
