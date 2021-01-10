@@ -8,12 +8,32 @@
     margin-left: 2%;
 }
 
-.textBox
+.textBox-encrypt
 {
     margin-left: 5%;
+    margin-top: 2%;
     margin-bottom: 5%;
-    width:450px;
+    width:90%;
     height:150px;
+}
+
+.infoLine
+{
+    text-align: left;
+    font-weight: 500;
+    margin-left: 5%;
+    margin-top: 2%;
+    margin-bottom: 2%;
+}
+
+.smallerText {
+    font-size: 75%;
+}
+
+.textBox-decrypted
+{
+    width: 90%;
+    height: 350px;
 }
 
 .card-margin
@@ -42,7 +62,17 @@
     font-weight: bold;
 }
 
-.alert-hide
+.bottom-grey-line
+{
+    border-top: 0px;
+    border-left: 0px;
+    border-right: 0px;
+    border-bottom: 1px;
+    border-style: solid;
+    border-color: lightgray;
+}
+
+.hide-me
 {
     display: none;
 }
@@ -50,4 +80,91 @@
 .alert-text
 {
     text-align: justify;
+}
+
+.mandelbrot-canvas-div {
+    width: 100%;
+    height: 300px;
+}
+
+.mandelbrot-canvas {
+    visibility: visible;
+    width: 100%;
+    height: 300px;
+    border:1px solid #000000;
+}
+
+
+.slider-h-container {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: left;
+    width: 100%;
+}
+
+.slider-h-container > div {
+    width: 200px;
+    margin: 10px;
+}
+
+.slider-height {
+    margin-left: 8% !important;
+    width: 100%
+}
+
+.width-height {
+    margin-top: 5%;
+}
+
+.choose-files {
+    margin-top: 5%;
+    margin-bottom: 5%;
+}
+
+.calc-image-dimensions {
+    margin-top: 5%;
+    margin-bottom: 5%;
+}
+
+.file-container-tabs {
+    width: 100%;
+}
+
+.spinner
+{
+    margin-right: 3%;
+}
+
+.button-spinner
+{
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    flex-direction: column;
+}
+
+
+.wide
+{
+    width: 90%;
+    border-right: 1px;
+    border-left: 1px;
+    border-style: solid;
+    border-color: lightgray;
+}
+
+.containerImageDimensions-text-box {
+    width:20px;
+}
+
+.medium-text {
+    font-size: 24px;
+}
+
+.large-text {
+    font-size: 48px;
+}
+
+.container-progress-bar {
+    margin-top: 3%;
 }

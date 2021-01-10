@@ -1,0 +1,35 @@
+.file-drop {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-betwen;
+    flex-direction: column;
+    border: 2px dashed #ccc;
+    border-radius: 15px;
+    width: 680px;
+    font-family: sans-serif;
+    margin: 20px auto;
+    padding: 20px;
+  }
+ 
+.file-drop-file-list {
+  font-size: 10pt;
+  height: 100px;
+  width: 200px;
+  resize: none;
+}
+
+.file-drop-clear {
+  align-self: center;
+  width: 100%;
+  height: 100%;
+}
+
+.file-drop.highlight {
+   border-color: #007bff;
+   background-color: cornsilk;
+}
+
+  .file-drop-fileElem {
+    display: none;
+  }
+ 
