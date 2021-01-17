@@ -105,7 +105,8 @@ export const CharsToFill = ((capacity: number, message: string, contentType: Con
 		
 		lastAttempt = currentAttempt;
 		currentMessage = message.substring(0, currentAttempt);
-		fileUnit = new FileUnit(currentMessage, contentType, '', capacity, hash, fileNo, totalFiles, encrypted, logger, fileInfoCollection);
+		const dims =  new Dimensions();
+		fileUnit = new FileUnit(currentMessage, contentType, '', dims, capacity, hash, fileNo, totalFiles, encrypted, logger, fileInfoCollection);
 		const bytesUsed = fileUnit.BytesRequired();
 
 		found = bytesUsed === capacity || (currentAttempt === message.length && bytesUsed < capacity);
@@ -192,15 +193,17 @@ export class FileUnit {
     fileSet: string;//consider for encryption
     encrypted: boolean;
 	containerFile: any;
+	containerFileDimensions: Dimensions;
 	fileInfoDtoCollection: FileInfoDto[];
 	contentType: ContentType;
     fileCapacity: number;
     intArray: number[];
     logger: any;
     
-    constructor(message: string, contentType: ContentType, containerFile: string, fileCapacity: number, fileSet: string, fileNo: number, totalFiles: number, encrypted: boolean, log: any, fileInfoDtoCollection: FileInfoDto[] = []) {
+    constructor(message: string, contentType: ContentType, containerFile: string, containerFileDimensions: Dimensions, fileCapacity: number, fileSet: string, fileNo: number, totalFiles: number, encrypted: boolean, log: any, fileInfoDtoCollection: FileInfoDto[] = []) {
     	this.message = message;
     	this.containerFile = containerFile;
+    	this.containerFileDimensions = containerFileDimensions;
     	this.fileInfoDtoCollection = fileInfoDtoCollection;
     	this.contentType = contentType;
     	this.fileCapacity = fileCapacity;
@@ -562,10 +565,13 @@ export class MessagePacker implements IMessagePackerBuilder {
 			// we are only going to add the populated fileInfoCollection to one message unit
 			const fileInfoCollection = this.fileUnits.length === 0 ? this.fileInfoArray : [];
 			//debugger;
-			//TODO we also want to be passing the container file nae through here 
+			//TODO we also want to be passing the container file name through here 
 			//so that we can store this in the fileUnit for later writing to the file.
-			const fileUnit =  CharsToFill(bytesPerFile[dimensionsCount], message, ContentType.File,  hash, 1, 1, this.isEncrypted(), this.logger, fileInfoCollection);
-			if (dimensions) {fileUnit.containerFile = dimensions[dimensionsCount].file;}
+			const fileUnit: FileUnit =  CharsToFill(bytesPerFile[dimensionsCount], message, ContentType.File,  hash, 1, 1, this.isEncrypted(), this.logger, fileInfoCollection);
+			if (dimensions) {
+				fileUnit.containerFile = dimensions[dimensionsCount].file;
+				fileUnit.containerFileDimensions = dimensions[dimensionsCount];
+			}
 			this.fileUnits.push(fileUnit);
 			message = message.slice(fileUnit.message.length);
 
@@ -634,7 +640,18 @@ export class MessagePacker implements IMessagePackerBuilder {
 
    			fnSetMessage(csvString);
    			const messageForUnit = JSON.stringify(this.convertToIntArray(this.message));
-   			const fileUnit = new FileUnit(messageForUnit, this.contentType, '', 0, HashMd5(), 1, 1, this.isEncrypted(), this.logger);
+   			const fileUnit = new FileUnit(
+				   messageForUnit, 
+				   this.contentType, 
+				   '',
+				   new Dimensions(),
+				   0, 
+				   HashMd5(), 
+				   1, 
+				   1, 
+				   this.isEncrypted(),
+   				this.logger
+   			);
    			this.fileUnits.push(fileUnit);
    			this.fileUnitToFractalFile(fileUnit, 'fractal.jpg', wrapUp);
    		});
@@ -804,8 +821,8 @@ export class MessagePacker implements IMessagePackerBuilder {
    					while (message.length > 0) {
    						// we are only going to add the populated fileInfoCollection to one message unit
    						const fileInfoCollection = this.fileUnits.length === 0 ? collection : [];
-						//debugger;   
-						const fileUnit =  CharsToFill(bytesPerFile, message, ContentType.File,  hash, 1, 1, this.isEncrypted(), this.logger, fileInfoCollection);
+   						//debugger;   
+   						const fileUnit =  CharsToFill(bytesPerFile, message, ContentType.File,  hash, 1, 1, this.isEncrypted(), this.logger, fileInfoCollection);
    						this.fileUnits.push(fileUnit);
    						message = message.slice(fileUnit.message.length);
    						const progress = origMessageLength - message.length;
@@ -846,7 +863,7 @@ export class MessagePacker implements IMessagePackerBuilder {
 
 				fnSetMessage(csvString);
 				const messageForUnit = JSON.stringify(this.convertToIntArray(this.message));
-				const fileUnit = new FileUnit(messageForUnit, this.contentType, '', 0, HashMd5(), 1, 1, this.isEncrypted(), this.logger);
+				const fileUnit = new FileUnit(messageForUnit, this.contentType, '', new Dimensions(), 0, HashMd5(), 1, 1, this.isEncrypted(), this.logger);				
 				const dimensions = this.imageHelper.DimensionsRequiredForCapacity(fileUnit.BytesRequired());
 				this.setDimensionsRequired(dimensions);
 				this.fileUnits.push(fileUnit);
@@ -889,7 +906,7 @@ export class MessagePacker implements IMessagePackerBuilder {
     	if (noFilesSelected) {
     		const compressedArray = this.compressIntArray((this.convertToIntArray(this.message)));
     		const messageForUnit = JSON.stringify(compressedArray);
-   			const fileUnit = new FileUnit(messageForUnit, this.contentType, '', 0, HashMd5(), 1, 1, this.isEncrypted(), this.logger);
+   			const fileUnit = new FileUnit(messageForUnit, this.contentType, '', new Dimensions(), 0, HashMd5(), 1, 1, this.isEncrypted(), this.logger);
    			this.fileUnitToFractalFile(fileUnit, 'fractal.jpg', wrapUp);
     	} else {
     		this.populateFileInformation(this.containerFiles, this.imageHelper)
@@ -1023,7 +1040,7 @@ export class MessagePacker implements IMessagePackerBuilder {
     		}
 
     		this.logger.log('fileMessage',fileMessage);
-    		const messageFile = new FileUnit(fileMessage, this.contentType, fileInfo.file,  fileInfo.bytesAvailable, hash, i + 1, fileCount, this.isEncrypted(), this.logger);
+    		const messageFile = new FileUnit(fileMessage, this.contentType, fileInfo.file, new Dimensions(), fileInfo.bytesAvailable, hash, i + 1, fileCount, this.isEncrypted(), this.logger);
     		this.fileUnits.push(messageFile);
     		lastMessagePosition = readToPosition;
     	}
@@ -1324,7 +1341,7 @@ export class MessageUnPacker {
     							}
 						
    							 	const extractedMessageBody = decryptedTextInitialObj.message;
-    							const unit = new FileUnit(extractedMessageBody, contentType, file, 0, decryptedTextInitialObj.fileSet, parseInt(decryptedTextInitialObj.fileNo), parseInt(decryptedTextInitialObj.totalFiles), decryptedTextInitialObj.encrypted, logger);    
+    							const unit = new FileUnit(extractedMessageBody, contentType, file, dimensions, 0, decryptedTextInitialObj.fileSet, parseInt(decryptedTextInitialObj.fileNo), parseInt(decryptedTextInitialObj.totalFiles), decryptedTextInitialObj.encrypted, logger);    
     							logger.log('unit', unit);
     							fileUnits.push(unit);
 

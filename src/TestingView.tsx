@@ -122,7 +122,18 @@ export function TestingView()  {
 		const logger = new Logger(false);
 		const hash = encryption.HashMd5();
 		const inMessage = JSON.stringify(bytes);
-		const fileUnit = new encryption.FileUnit(inMessage, encryption.ContentType.File, '', 0, hash, 1, 1, false, logger);
+		const fileUnit = new encryption.FileUnit(
+			inMessage, 
+			encryption.ContentType.File, 
+			'', 
+			new Image.Dimensions(), 
+			0, 
+			hash, 
+			1, 
+			1, 
+			false, 
+			logger
+		);
 		const bytesRequired = fileUnit.BytesRequired();
 		logger.setLoggingOn();
 		logger.log('bytes',bytes);

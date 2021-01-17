@@ -378,6 +378,7 @@ export function EncryptView()  {
 								<InputGroup.Checkbox onChange={(e) => {setUseSecretForEncryption(e.target.checked);}} />
 							</InputGroup.Prepend>
 							<FormControl
+								type="password"
 								placeholder={encryptionSecret}
 								aria-describedby="enc-secret"
 								onChange={(e: any) => {setEncryptionSecret(e.target.value);}}

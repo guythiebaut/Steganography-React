@@ -198,6 +198,7 @@ export function DecryptView()  {
 								<InputGroup.Checkbox onChange={(e) => {setUseSecretForDecryption(e.target.checked);}}/>
 							</InputGroup.Prepend>                                
 							<FormControl
+								type="password"
 								placeholder={decryptionSecret}
 								aria-label="Enter your decryption password here..."
 								aria-describedby="dec-secret"
