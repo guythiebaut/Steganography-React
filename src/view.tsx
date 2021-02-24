@@ -12,8 +12,15 @@ import { TestingView } from './TestingView';
 import { GoogleAd } from './GoogleAd';
 import { BackgroundInformationView } from './backgroundInformationView';
 
-export function View() {
+const ShowTestView = () => {
+	if (process.env.NODE_ENV === 'development') {
+		return TestingView();
+	} else {
+		return null;
+	}
+};
 
+export function View() {
 	return (
 		<div className="App">
 			<Container className="p-3 p3-padding">
@@ -23,7 +30,7 @@ export function View() {
 					{ InstructionsView() }
 					{ EncryptView() }
 					{ DecryptView() }
-					{/* { TestingView() } */}
+					{ ShowTestView() }
 				</Tabs>
 			</Container>
 			<GoogleAd></GoogleAd>

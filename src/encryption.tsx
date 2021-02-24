@@ -7,6 +7,7 @@ import { Dimensions, EndMarker, IImageHelper, IsImageFile, StringToNumberArray }
 import { IMessagePackerBuilder } from './IMessagePackerBuilder';
 import { IProgressHelper } from './IProgressHelper';
 import { EventListener, IEventListener } from './eventListener';
+import * as Constants  from './constants';
 
 export enum DecryptionError {
     None,
@@ -118,7 +119,8 @@ export const CharsToFill = ((capacity: number, message: string, contentType: Con
 
 export const EncryptAES = ((secret: string, objectToEncrypt: object): string => {
 	const simpleCrypto = new SimpleCrypto(secret);
-	const result = simpleCrypto.encryptObject(objectToEncrypt);
+	//const result = simpleCrypto.encryptObject(objectToEncrypt);
+	const result = simpleCrypto.encrypt(objectToEncrypt);
 	return result;
 });
 
@@ -270,6 +272,7 @@ export class MessagePacker implements IMessagePackerBuilder {
 	setDimensionsRequired: any;
 	setPackedMessage: any;
 	containerFiles: any[] = [];
+	splitAcrossContainerFiles: boolean = true; 
 	dimensionsLimit: Dimensions;
 	byteFiles: any[] = [];
 	contentType: ContentType = ContentType.Unknown;
@@ -302,6 +305,7 @@ export class MessagePacker implements IMessagePackerBuilder {
 		this.setDimensionsRequired = pack.setDimensionsRequired;
 		this.setPackedMessage = pack.setPackedMessage;
 		this.containerFiles = pack.containerFiles;
+		this.splitAcrossContainerFiles = pack.splitAcrossContainerFiles;
 		this.dimensionsLimit = pack.dimensionsLimit;
 		this.byteFiles = pack.byteFiles;
 		this.contentType = pack.contentType;
@@ -342,13 +346,13 @@ export class MessagePacker implements IMessagePackerBuilder {
 
 		this.getByteAndFileInfoListener();
 
-		this.progressHelper.AddSubscriber('GetByteAndFileInfo');
-		this.progressHelper.AddSubscriber('processBytesAndFileInfo');
+		this.progressHelper.AddSubscriber(Constants.ByteAndFileInfoSignature);
+		this.progressHelper.AddSubscriber(Constants.ProcessBytesAndFileInfoSignature);
 		this.progressHelper.AddSubscriber('createFileUnits');
 		this.progressHelper.AddSubscriber('createFractals');
 
-		this.progressHelper.SetSubscriberTotal('GetByteAndFileInfo', 1);
-		this.progressHelper.SetSubscriberTotal('processBytesAndFileInfo', 1);
+		this.progressHelper.SetSubscriberTotal(Constants.ByteAndFileInfoSignature, 1);
+		this.progressHelper.SetSubscriberTotal(Constants.ProcessBytesAndFileInfoSignature, 1);
 		this.progressHelper.SetSubscriberTotal('createFileUnits', 1);
 		this.progressHelper.SetSubscriberTotal('createFractals', 1);
 	});
@@ -372,16 +376,16 @@ export class MessagePacker implements IMessagePackerBuilder {
 	});
 
 	getByteAndFileInfoListener = (() =>{
-		this.eventListener.addEventListener('GetByteAndFileInfo' + this.packerId, (e: any) => {
+		this.eventListener.addEventListener(Constants.ByteAndFileInfoSignature + this.packerId, (e: any) => {
 			
 			const eventData = e.detail.eventObject;
 
-			console.log('GetByteAndFileInfo', eventData);
+			console.log(Constants.ByteAndFileInfoSignature, eventData);
 			const totalFiles = eventData.totalFiles;
 
 			if (this.filesProcesed.length === 0) {
-				this.progressHelper.SetSubscriberTotal('GetByteAndFileInfo', totalFiles);
-				this.progressHelper.SetSubscriberTotal('processBytesAndFileInfo', totalFiles);
+				this.progressHelper.SetSubscriberTotal(Constants.ByteAndFileInfoSignature, totalFiles);
+				this.progressHelper.SetSubscriberTotal(Constants.ProcessBytesAndFileInfoSignature, totalFiles);
 				this.progressHelper.SetSubscriberTotal('createFileUnits', 1);
 				this.progressHelper.SetSubscriberTotal('createFractals', 1);
 			}
@@ -389,7 +393,7 @@ export class MessagePacker implements IMessagePackerBuilder {
 			this.filesProcesed.push(eventData.fileNo);
 			console.log('filesProcesed', this.filesProcesed);
 			this.fileProcessedData.push(eventData);
-			this.progressHelper.SetSubscriberCount('GetByteAndFileInfo', this.filesProcesed.length);
+			this.progressHelper.SetSubscriberCount(Constants.ByteAndFileInfoSignature, this.filesProcesed.length);
 			
 			setTimeout(() => { this.progressHelper.SendMessage('Getting byte and file info...'); }, 1);
 
@@ -400,7 +404,7 @@ export class MessagePacker implements IMessagePackerBuilder {
 				let found = false;
 				this.filesToProcess.forEach((file: any, index: number) => {
 					if (!found && this.filesProcesed.indexOf(index) === -1) {
-						this.GetByteAndFileInfo(this.filesToProcess[index], 'GetByteAndFileInfo', index, totalFiles, eventData.createFiles, null);
+						this.GetByteAndFileInfo(this.filesToProcess[index], Constants.ByteAndFileInfoSignature, index, totalFiles, eventData.createFiles, null);
 						found = true;
 					}
 				});
@@ -429,15 +433,12 @@ export class MessagePacker implements IMessagePackerBuilder {
 				if (!eventData.createFiles) {
 					this.containerFiles.forEach(containerFile => {
 						this.imageHelper.ImageFileDimensions(containerFile).then((dims: Dimensions)=>{
-							//TODO HERE
 							//debugger;
 							dims.file = containerFile;
 							dimensions.push(dims);
 							//debugger;
 
 							if(dimensions.length === this.containerFiles.length) {
-								//TODO I think we want to pass through the filename here too
-								//so that when we create the output files we know which file to output to
 								createFileUnitsResult = this.createFileUnits(true, dimensions);
 								//debugger;
 								console.log('this.packerId',this.packerId);
@@ -453,8 +454,6 @@ export class MessagePacker implements IMessagePackerBuilder {
 									//debugger;
 									if (percent === 100) {					
 										setTimeout(() => { this.progressHelper.SendMessage('Creating fractals...'); }, 1);
-										//TODO this is where we need to use the files provided
-										//as the output files
 										setTimeout(() => { this.createFractals(dims); }, 0);
 									}
 
@@ -486,8 +485,6 @@ export class MessagePacker implements IMessagePackerBuilder {
 		});		
 	});
 
-	//TODO for supplied container files load file to canvas as per the link below
-	//https://stackoverflow.com/a/6011402
 	createFractals = ((dimensions: Dimensions) => {
 		for (let i = 0; i < this.fileUnits.length; i++) {
 			const fileUnit = this.fileUnits[i];
@@ -538,21 +535,24 @@ export class MessagePacker implements IMessagePackerBuilder {
 
 	createFileUnits = ((dimensionsSupplied: boolean, dimensions: Dimensions[] | null = null) => {
 		const bytesPerFile: number[] = [];
+		let totalDimensions = 0;
 		//debugger;
 		if (dimensions === null ) {
 			bytesPerFile[0] = this.imageHelper.ImageByteCapacityForDimensions(this.dimensionsLimit);
 		} else {
 			dimensions.forEach((dims: Dimensions) => {
 				bytesPerFile.push(this.imageHelper.ImageByteCapacityForDimensions(dims));
+				totalDimensions += dims.height * dims.width;
 			});
 		}
 
 		let csvString: any = this.totalBytes.join();
 		if (this.isEncrypted()) { csvString = EncryptAES(this.secret, csvString); }
 		this.message = csvString;
-		let message = JSON.stringify(this.convertToIntArray(this.message));
+		let StringifiedIntArray = JSON.stringify(this.convertToIntArray(this.message));
+		let StringifiedIntArrayTotalLength = StringifiedIntArray.length;
 		const hash = HashMd5();
-		const startingMessageLength = message.length;
+		const startingMessageLength = StringifiedIntArray.length;
 		this.logger.log('startingMessageLength',startingMessageLength);
 		//debugger;
 
@@ -562,29 +562,38 @@ export class MessagePacker implements IMessagePackerBuilder {
 		let completed = false;
 
 		while (!completed) {
-			// we are only going to add the populated fileInfoCollection to one message unit
+			// we are only going to add the populated fileInfoCollection to the first message unit
 			const fileInfoCollection = this.fileUnits.length === 0 ? this.fileInfoArray : [];
 			//debugger;
-			//TODO we also want to be passing the container file name through here 
-			//so that we can store this in the fileUnit for later writing to the file.
-			const fileUnit: FileUnit =  CharsToFill(bytesPerFile[dimensionsCount], message, ContentType.File,  hash, 1, 1, this.isEncrypted(), this.logger, fileInfoCollection);
+
+			let messageForUnit = StringifiedIntArray;
+
+			if (this.splitAcrossContainerFiles && dimensions && totalDimensions > 0) {
+				if(dimensionsCount !== dimensions.length -1) {
+					let calculatedDataSlice = StringifiedIntArrayTotalLength * ((dimensions[dimensionsCount].height * dimensions[dimensionsCount].width) / totalDimensions);
+					messageForUnit = StringifiedIntArray.slice(0, calculatedDataSlice)
+				}
+			}
+			
+			const fileUnit: FileUnit =  CharsToFill(bytesPerFile[dimensionsCount], messageForUnit, ContentType.File,  hash, 1, 1, this.isEncrypted(), this.logger, fileInfoCollection);
 			if (dimensions) {
 				fileUnit.containerFile = dimensions[dimensionsCount].file;
 				fileUnit.containerFileDimensions = dimensions[dimensionsCount];
 			}
 			this.fileUnits.push(fileUnit);
-			message = message.slice(fileUnit.message.length);
+			
+			StringifiedIntArray = StringifiedIntArray.slice(fileUnit.message.length);
 
 			if(!dimensionsSupplied) {
-				completed = message.length === 0;
+				completed = StringifiedIntArray.length === 0;
 			} else {
-				completed =  message.length === 0 || dimensionsCount === bytesPerFile.length - 1;
+				completed =  StringifiedIntArray.length === 0 || dimensionsCount === bytesPerFile.length - 1;
 				dimensionsCount++;
 			}
 		}	
 
 		this.progressHelper.SetSubscriberCount('createFileUnits', 1);
-		const len = message.length === 0 ? 1 : message.length;
+		const len = StringifiedIntArray.length === 0 ? 1 : StringifiedIntArray.length;
 		const percentProcessed = Math.round((len / startingMessageLength) * 100);
 
 		if (percentProcessed > 0) {
@@ -611,7 +620,7 @@ export class MessagePacker implements IMessagePackerBuilder {
 
 	processBytesAndFileInfo = (() => {
 		this.fileProcessedData.forEach((bytesAndInfo: any, index: number) => {
-			this.progressHelper.SetSubscriberCount('processBytesAndFileInfo', index + 1);
+			this.progressHelper.SetSubscriberCount(Constants.ProcessBytesAndFileInfoSignature, index + 1);
 	
 			bytesAndInfo.fileInfoDto.startsAt = this.totalBytes.length;
 			this.ArrayConcat(this.totalBytes, bytesAndInfo.byteArrayForThisFile);
@@ -762,89 +771,6 @@ export class MessagePacker implements IMessagePackerBuilder {
 		});
 		reader.readAsArrayBuffer(file); 
 	});
-
-   fileToOutputFiles = (async(dimensions: Dimensions, imageHelper: IImageHelper, wrapUp: any, progressHelper: IProgressHelper, fileNamePrefix: string)=>{
-   	return new Promise((resolve) => {
-
-   		const filesToProcess =  this.byteFiles.filter((x: any) => {return (x as File).type;});
-   		const collection: FileInfoDto[] = [];
-   		let byteArrayForAllFiles: any[] = [];
-   		let filesProcessedCount = 0;   
-
-	   filesToProcess.forEach((file: any) => {		   
-
-   			const bytesPerFile = imageHelper.ImageByteCapacityForDimensions(dimensions);
-   			let fileType = file.type;
-   			let fileName = file.name;   
-   			const reader = new FileReader();
-		
-   			reader.onload = (async (event: any) => {		   
-   				const fnSetMessage = ((message: string) => {this.message = message;});
-   				const byteArrayForThisFile = this.ByteArrayToArray(event.target.result);
-   				console.log('fileName',fileName);   
-   				console.log('byteArrayForThisFile.length',byteArrayForThisFile.length);   
-   				const start = byteArrayForAllFiles.length;   
-   				byteArrayForAllFiles =	this.ArrayConcat(byteArrayForAllFiles, byteArrayForThisFile);
-   				const end = byteArrayForAllFiles.length - 1;
-   				let startForDto = String(start);
-   				let endForDto = String(end);
-				   
-   				if (this.isEncrypted()) {
-   					fileName = EncryptAES(this.secret, fileName);   
-   					fileType = EncryptAES(this.secret, fileType);   
-   					startForDto = EncryptAES(this.secret, startForDto as Object);   
-   					endForDto = EncryptAES(this.secret, endForDto as Object);   
-   				}
-   				
-   				const fileInfoDto: FileInfoDto = new FileInfoDto(fileName, fileType, startForDto, endForDto);
-   				collection.push(fileInfoDto);
-   				filesProcessedCount++;
-				
-   				if (filesProcessedCount === filesToProcess.length) {
-   					console.log('collection',collection);
-   					const compressedArray: any = this.compressIntArray(byteArrayForAllFiles);
-   					let csvString = compressedArray.join();
-   					if (this.secret !== '') {
-   						csvString = EncryptAES(this.secret, csvString);
-   					}
-   					fnSetMessage(csvString);
-   					let message = JSON.stringify(this.convertToIntArray(this.message));
-   					const hash = HashMd5();
-					
-   					const origMessageLength = message.length;
-   					progressHelper.AddSubscriber('fileToOutputFiles');
-   					progressHelper.SetSubscriberTotal('fileToOutputFiles', origMessageLength);
-   					progressHelper.SetSubscriberCount('fileToOutputFiles', 0);
-
-   					// let's keep reducing the size of the message
-    				// until we have fully processed it  
-   					while (message.length > 0) {
-   						// we are only going to add the populated fileInfoCollection to one message unit
-   						const fileInfoCollection = this.fileUnits.length === 0 ? collection : [];
-   						//debugger;   
-   						const fileUnit =  CharsToFill(bytesPerFile, message, ContentType.File,  hash, 1, 1, this.isEncrypted(), this.logger, fileInfoCollection);
-   						this.fileUnits.push(fileUnit);
-   						message = message.slice(fileUnit.message.length);
-   						const progress = origMessageLength - message.length;
-   						progressHelper.SetSubscriberCount('fileToOutputFiles', progress);   
-   					}	
-		
-   					for (let i = 0; i < this.fileUnits.length; i++) {
-   						const fileUnit = this.fileUnits[i];
-   						fileUnit.fileNo = i + 1;
-   						fileUnit.totalFiles = this.fileUnits.length;
-   						fileUnit.RefreshIntArray();
-   						this.fileUnitToFractalFile(fileUnit, `${fileNamePrefix}${i}.jpg`, wrapUp);				
-   					}
-   					wrapUp();
-   				}
-   			});
-
-   			reader.readAsArrayBuffer(file); 
-   		});		   
-   		resolve();
-   	});
-   });
 
 	fileToMessageForUnit = (async()=>{
     	return new Promise((resolve) => {

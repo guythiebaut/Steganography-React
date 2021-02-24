@@ -16,9 +16,11 @@ import { MessagePackerBuilder } from './MessagePackerBuilder';
 import RangeSlider from 'react-bootstrap-range-slider';
 import 'bootstrap/dist/css/bootstrap.css'; 
 import 'react-bootstrap-range-slider/dist/react-bootstrap-range-slider.css';
-import { FileDrop } from './FileDrop';
+import { FileDrop } from './FileDrop'
+import { RadioButtonGroup } from './RadioButtonGroup'
 import { Animation } from './Animation';
 import { EventListener } from './eventListener';
+import { LZW } from './LZW_compression';
 
 export function TestingView()  { 
 
@@ -29,6 +31,17 @@ export function TestingView()  {
 	const logInformation = true;
 	const logger = new Logger(logInformation);
 	const eventListener = new EventListener();
+
+	const CompressionTest = (() => {
+		const testText = 'TOBEORNOTTOBEORTOBEORNOT';
+		const  compressed = LZW.compress(testText);
+		const uncompressed = LZW.decompress(compressed);
+		console.log('testText',testText);
+		console.log('length of testText',testText.length);
+		console.log('compressed',compressed);
+		console.log('length of compressed',compressed.length);
+		console.log('uncompressed',uncompressed);
+	});
 
 	const CreateTestFile = ((width: string, height: string) => {
 		//createImageForTesting(parseInt(width),parseInt(height),'');
@@ -160,6 +173,10 @@ export function TestingView()  {
 		console.log('files selected:', files);
 	});
 
+	const RadioButtonChanged = ((val:any) =>{
+		console.log(`value selected: ${val}`);
+	});
+
 	const [filesSelected, setfilesSelected] = useState([FileList]);
 	const[imageWidth, setimageWidth] = useState('200');
 	const[imageHeight, setimageHeight] = useState('200');
@@ -201,6 +218,7 @@ export function TestingView()  {
 					/>
 				</InputGroup>                                            
 				<Button variant="primary" size="lg" onClick={() => CreateTestFile(imageWidth, imageHeight)}>Create test file </Button>
+				<Button variant="primary" size="lg" onClick={() => CompressionTest()}>Test compression </Button>
 				<br/>
 				<InputGroup className="mb-3" >
 					<InputGroup.Prepend>
@@ -256,11 +274,11 @@ export function TestingView()  {
 					setMagnificationFactor(e.target.value); 
 					CreateMandelbrotFile(maxIterations,magnificationFactor,panX,panY);}} />
 				<br/>
-				<RangeSlider value={panX}	max = {maxPanX} step = "0.01" onChange={(e: any) => {
+				<RangeSlider value={panX}	max = {maxPanX} step = {0.01} onChange={(e: any) => {
 					setPanX(e.target.value); 
 					CreateMandelbrotFile(maxIterations,magnificationFactor,panX,panY);}} />
 				<br/>
-				<RangeSlider value={panY} max = {maxPanY} step = "0.01" onChange={(e: any) => {
+				<RangeSlider value={panY} max = {maxPanY} step = {0.01} onChange={(e: any) => {
 					setPanY(e.target.value); 
 					CreateMandelbrotFile(maxIterations,magnificationFactor,panX,panY);}} />										
 
@@ -300,6 +318,9 @@ export function TestingView()  {
 				</Modal.Body>
 			</Modal.Dialog>
 			<FileDrop identifiedBy={'testing-drop-id'} eventListener={eventListener} showProgressBar={false} uploadCallback={FileDropCallback} clearFilesCallBack={()=>{}} setFileNamesEventName='testing-drop-id-set-files' setProgressBarEventName='progressBarTestEvent'></FileDrop>
+			<div>
+				<RadioButtonGroup identifiedBy={'radio1'} radioButtons={[{label:'hello', checked: false}, {label:'world', checked: true}, {label:'again', checked: false}]} onChanged={(val:any) => {RadioButtonChanged(val)}}></RadioButtonGroup>
+			</div>
 			<div>
 				<Animation contextRef={'hello'} angle={0}></Animation>
 			</div>

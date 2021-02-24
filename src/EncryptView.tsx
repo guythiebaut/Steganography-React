@@ -19,12 +19,14 @@ import { FileDrop } from './FileDrop';
 import { ProgressPercentage } from './ProgressPercentage';
 import { ProgressTestRig } from './ProgressTestRig';
 import { EventListener } from './eventListener';
+import * as Constants  from './constants';
 
 import { ContainerImageDimensions, dimensionsWidth, dimensionsHeight, fileNamePrefix } from './containerImageDimensions';
 import { ProgressHelperBuilder } from './ProgressHelperBuilder';
 import { ProgressHelper } from './ProgressHelper';
 import { TestComponent } from './TestComponent';
 import { Dialog } from './Dialog';
+import { RadioButtonGroup } from './RadioButtonGroup';
 
 export function EncryptView()  {
 
@@ -177,12 +179,17 @@ export function EncryptView()  {
 		dispatchEvent(notifyEvent);
 	});
 
+	const RadioButtonChanged = ((val:any) =>{
+		setFillSplitAcrossContainers(val);
+	});
 	
 	//TODO check what is going on here
 	//I think that this actually tests where the bytes from one file will fit into the container files
 	//so we need to do this for more than one file and then use the results to 
 	//feed into the container files to be used instead of fractals
 	const GenerateToContainerFiles = ((secret: string, encryptingCallback: any) => {
+
+		//TODO need to handle text generated to container files
 
 		const contentType = ContentType.File;
 
@@ -194,9 +201,12 @@ export function EncryptView()  {
 
 		const progressHelper = new ProgressHelper(progressBuilder);	
 
+		let split = fillSplitAcrossContainers === '1';
+
 		const packerBuilder: MessagePackerBuilder = new MessagePackerBuilder()
 			.setLogger(logger)
 			.setContainerFiles(containerFiles)
+			.setSplitAcrossContainerFiles(split)
 			.setDimensionsLimit(new Image.Dimensions())
 			.setSetDimensionsRequired(setDimensionsRequired)
 			.setSetPackedMessage(setPackedMessage)
@@ -221,7 +231,7 @@ export function EncryptView()  {
 		console.log('containerFiles',containerFiles);
 		const filesToProcess =  byteFiles.filter((x: any) => {return (x as File).type;});
 		messagePacker.filesToProcess = filesToProcess;
-		messagePacker.TestDimensions(filesToProcess[0], 'GetByteAndFileInfo', 0, filesToProcess.length, containerDropSetPercentEventName, showDialogEventName, ()=>{});
+		messagePacker.TestDimensions(filesToProcess[0], Constants.ByteAndFileInfoSignature, 0, filesToProcess.length, containerDropSetPercentEventName, showDialogEventName, ()=>{});
 	});
 
 	const packageDropId = 'byteFile-drop';
@@ -268,10 +278,12 @@ export function EncryptView()  {
 				const dims = new Image.Dimensions();
 				dims.width = dimensionsWidth;
 				dims.height = dimensionsHeight;
+				let split = fillSplitAcrossContainers === '1';
 
 				const packerBuilder: MessagePackerBuilder = new MessagePackerBuilder()
 					.setLogger(logger)
 					.setContainerFiles(containerFiles)
+					.setSplitAcrossContainerFiles(split)
 					.setDimensionsLimit(dims)
 					.setSetDimensionsRequired(setDimensionsRequired)
 					.setSetPackedMessage(setPackedMessage)
@@ -320,9 +332,12 @@ export function EncryptView()  {
 				return;
 			}
 
+			let split = fillSplitAcrossContainers === '1';
+
 			const builder: MessagePackerBuilder = new MessagePackerBuilder()
 				.setLogger(logger)
 				.setContainerFiles(containerFiles)
+				.setSplitAcrossContainerFiles(split)
 				.setSetDimensionsRequired(setDimensionsRequired)
 				.setSetPackedMessage(setPackedMessage)
 				.SetByteFiles(byteFiles)
@@ -361,6 +376,7 @@ export function EncryptView()  {
 	const [generateFilesMessage, setGenerateFilesMessage] = useState('Generate file(s)');
 	const [progress, setProgress] = useState(0);
 	const [progressMessage, setProgressMessage] = useState('');
+	const [fillSplitAcrossContainers, setFillSplitAcrossContainers] = useState('1');
 
 	return(
 		<Tab eventKey="encrypt" title="Generate file(s)" tabClassName='tab-header'>
@@ -418,7 +434,12 @@ export function EncryptView()  {
 								<ContainerImageDimensions></ContainerImageDimensions>
 							</Tab>
 							<Tab  eventKey="containerFiles" title="Select container files" tabClassName='tab-header'>
-								<FileDrop identifiedBy={containerDropId} eventListener={eventListener} showProgressBar={true} uploadCallback={SetContainerFilesCallback} clearFilesCallBack={ClearContainerFilesChosenCallback} setFileNamesEventName={containerDropSetFileNamesEventName} setProgressBarEventName={containerDropSetPercentEventName}></FileDrop>
+								<div className='container-files'>
+									<div className='fill-split'>
+										<RadioButtonGroup identifiedBy={'radioA'} title={'Fill/Split files with data'} radioButtons={[{label:'Fill files', checked: false}, {label:'Split across files', checked: true}]} onChanged={(val:any) => {RadioButtonChanged(val)}}></RadioButtonGroup>
+									</div>
+									<FileDrop identifiedBy={containerDropId} eventListener={eventListener} showProgressBar={true} uploadCallback={SetContainerFilesCallback} clearFilesCallBack={ClearContainerFilesChosenCallback} setFileNamesEventName={containerDropSetFileNamesEventName} setProgressBarEventName={containerDropSetPercentEventName}></FileDrop>
+								</div>								
 							</Tab>
 						</Tabs>	
 					</div>
